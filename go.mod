@@ -1,6 +1,8 @@
 module github.com/udhos/oauth2clientcredentials
 
-go 1.25.1
+go 1.24.7 // minimum
+
+toolchain go1.25.1 // preferred
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
