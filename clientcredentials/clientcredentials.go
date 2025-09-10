@@ -93,7 +93,7 @@ func DecodeResponseBody(data []byte) (Response, error) {
 
 // DecodeResponseBodyOld decodes the response body for client credentials grant type.
 func DecodeResponseBodyOld(data []byte) (Response, error) {
-	return parseToken(data, func(format string, v ...any) {})
+	return parseToken(data, func(_ string, _ ...any) {})
 }
 
 // Response represents a client credentials token response.
