@@ -56,33 +56,16 @@ func TestRequest(t *testing.T) {
 		w.Write([]byte(respBody))
 	}))
 
-	resp, errSend := SendRequest(
-		context.TODO(),
-		http.DefaultClient,
-		server.URL,
-		clientID,
-		clientSecret,
-		requestScope,
-	)
+	options := RequestOptions{
+		TokenURL:     server.URL,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Scope:        requestScope,
+	}
+
+	tokenResp, errSend := SendRequest(context.TODO(), options)
 	if errSend != nil {
 		t.Fatalf("failed to send request: %v", errSend)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected status code 200, got %d", resp.StatusCode)
-	}
-
-	body, errBody := io.ReadAll(resp.Body)
-	if errBody != nil {
-		t.Fatalf("failed to read response body: %v", errBody)
-	}
-
-	server.Close()
-
-	tokenResp, errDecode := DecodeResponseBody(body)
-	if errDecode != nil {
-		t.Fatalf("failed to decode response body: %v", errDecode)
 	}
 
 	if tokenResp.TokenType != "Bearer" {

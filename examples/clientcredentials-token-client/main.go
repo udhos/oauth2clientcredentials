@@ -4,9 +4,7 @@ package main
 import (
 	"context"
 	"flag"
-	"io"
 	"log"
-	"net/http"
 
 	"github.com/udhos/oauth2clientcredentials/clientcredentials"
 )
@@ -24,22 +22,16 @@ func main() {
 	flag.StringVar(&tokenURL, "token_url", "http://localhost:8080/token", "token url")
 	flag.Parse()
 
-	resp, errDo := clientcredentials.SendRequest(context.TODO(), http.DefaultClient, tokenURL, clientID, clientSecret, scope)
-	if errDo != nil {
-		log.Fatalf("error http post: %v", errDo)
-	}
-	defer resp.Body.Close()
-
-	log.Printf("response status: %d", resp.StatusCode)
-
-	body, errBody := io.ReadAll(resp.Body)
-	if errBody != nil {
-		log.Fatalf("error read body: %v", errBody)
+	options := clientcredentials.RequestOptions{
+		TokenURL:     tokenURL,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Scope:        scope,
 	}
 
-	tokenResp, errDecode := clientcredentials.DecodeResponseBody(body)
-	if errDecode != nil {
-		log.Fatalf("error decode response body: %v", errDecode)
+	tokenResp, errSend := clientcredentials.SendRequest(context.TODO(), options)
+	if errSend != nil {
+		log.Fatalf("error http post: %v", errSend)
 	}
 
 	// print response fields

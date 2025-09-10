@@ -4,7 +4,8 @@ package clientcredentials
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -85,18 +86,64 @@ type HTTPDoer interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// RequestOptions contains options for sending a client credentials token request.
+type RequestOptions struct {
+	// HTTPClient is optional HTTP client to use for sending the request.
+	// If nil, http.DefaultClient will be used.
+	HTTPClient HTTPDoer
+
+	TokenURL     string
+	ClientID     string
+	ClientSecret string
+	Scope        string
+
+	// IsStatusCodeOK is optional function to check if the status code is OK.
+	// If nil, DefaultIsStatusCodeOK will be used.
+	IsStatusCodeOK func(statusCode int) bool
+}
+
+// DefaultIsStatusCodeOK is the default implementation for checking if a status code is OK.
+func DefaultIsStatusCodeOK(statusCode int) bool {
+	return statusCode >= 200 && statusCode < 300
+}
+
 // SendRequest sends a client credentials token request and returns the response.
-func SendRequest(ctx context.Context, httpClient HTTPDoer, tokenURL,
-	clientID, clientSecret, scope string) (*http.Response, error) {
+func SendRequest(ctx context.Context, options RequestOptions) (Response, error) {
 
-	reqBody := EncodeRequestBody(clientID, clientSecret, scope)
+	var tokenResp Response
 
-	req, errReq := http.NewRequestWithContext(ctx, "POST", tokenURL, strings.NewReader(reqBody))
+	if options.HTTPClient == nil {
+		options.HTTPClient = http.DefaultClient
+	}
+
+	if options.IsStatusCodeOK == nil {
+		options.IsStatusCodeOK = DefaultIsStatusCodeOK
+	}
+
+	reqBody := EncodeRequestBody(options.ClientID, options.ClientSecret, options.Scope)
+
+	req, errReq := http.NewRequestWithContext(ctx, "POST", options.TokenURL, strings.NewReader(reqBody))
 	if errReq != nil {
-		log.Fatalf("error new request: %v", errReq)
+		return tokenResp, errReq
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	return httpClient.Do(req)
+	resp, errDo := options.HTTPClient.Do(req)
+	if errDo != nil {
+		return tokenResp, errDo
+	}
+
+	defer resp.Body.Close()
+
+	if !options.IsStatusCodeOK(resp.StatusCode) {
+		return tokenResp, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, errRead := io.ReadAll(resp.Body)
+	if errRead != nil {
+		return tokenResp, errRead
+	}
+
+	return DecodeResponseBody(body)
 }
