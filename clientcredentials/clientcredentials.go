@@ -4,12 +4,13 @@ package clientcredentials
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/sugawarayuuta/sonnet"
 )
 
 // EncodeRequestBody encodes the request body for client credentials grant type.
@@ -68,7 +69,7 @@ func EncodeResponseBody(accessToken string, expiresInSeconds int) string {
 // DecodeResponseBody decodes the response body for client credentials grant type.
 func DecodeResponseBody(data []byte) (Response, error) {
 	var resp Response
-	err := json.Unmarshal(data, &resp)
+	err := sonnet.Unmarshal(data, &resp)
 	return resp, err
 }
 
@@ -79,7 +80,7 @@ type Response struct {
 	ExpiresIn   int    `json:"expires_in,omitempty"`
 }
 
-// HTTPDoer is a pluggable interface custom http client.
+// HTTPDoer is an interface for plugging in custom HTTP clients.
 type HTTPDoer interface {
 	Do(req *http.Request) (*http.Response, error)
 }

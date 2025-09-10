@@ -6,6 +6,7 @@ toolchain go1.25.1 // preferred
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/sugawarayuuta/sonnet v0.0.0-20231004000330-239c7b6e4ce8
 	github.com/udhos/boilerplate v1.6.11
 )
 

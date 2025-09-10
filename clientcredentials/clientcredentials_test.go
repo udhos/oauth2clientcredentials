@@ -2,9 +2,11 @@ package clientcredentials
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -93,5 +95,75 @@ func TestRequest(t *testing.T) {
 
 	if tokenResp.ExpiresIn != expiresIn {
 		t.Errorf("expected expires_in %d, got %d", expiresIn, tokenResp.ExpiresIn)
+	}
+}
+
+type requestBodyTest struct {
+	name         string
+	clientID     string
+	clientSecret string
+	scope        string
+	expected     string
+}
+
+var requestBodyTests = []requestBodyTest{
+	{
+		name:         "normal case",
+		clientID:     "myclientid",
+		clientSecret: "myclientsecret",
+		scope:        "read write",
+		expected:     "client_id=myclientid&client_secret=myclientsecret&grant_type=client_credentials&scope=read+write",
+	},
+	{
+		name:         "unicode",
+		clientID:     "myclientidá",
+		clientSecret: "myclientsecretá",
+		scope:        "á",
+		expected:     "client_id=myclientid%C3%A1&client_secret=myclientsecret%C3%A1&grant_type=client_credentials&scope=%C3%A1",
+	},
+	{
+		name:         "empty scope",
+		clientID:     "myclientid",
+		clientSecret: "myclientsecret",
+		scope:        "",
+		expected:     "client_id=myclientid&client_secret=myclientsecret&grant_type=client_credentials",
+	},
+}
+
+// go test -count 1 -run ^TestEncodeRequestBody$ ./...
+func TestEncodeRequestBody(t *testing.T) {
+	for i, data := range requestBodyTests {
+		name := fmt.Sprintf("%d of %d: %s", i+1, len(requestBodyTests), data.name)
+		t.Run(name, func(t *testing.T) {
+			result := EncodeRequestBody(data.clientID, data.clientSecret, data.scope)
+			if result != data.expected {
+				t.Fatalf("expected '%s', got '%s'", data.expected, result)
+			}
+
+			req, errReq := http.NewRequest("POST", "http://example.com/token", io.NopCloser(strings.NewReader(result)))
+			if errReq != nil {
+				t.Fatalf("failed to create request: %v", errReq)
+			}
+
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			decodedReq, errDecode := DecodeRequestBody(req)
+			if errDecode != nil {
+				t.Fatalf("ailed to decode request body: %v", errDecode)
+			}
+
+			if decodedReq.GrantType != "client_credentials" {
+				t.Errorf("expected grant_type client_credentials, got %s", decodedReq.GrantType)
+			}
+			if decodedReq.ClientID != data.clientID {
+				t.Errorf("expected client_id %s, got %s", data.clientID, decodedReq.ClientID)
+			}
+			if decodedReq.ClientSecret != data.clientSecret {
+				t.Errorf("expected client_secret %s, got %s", data.clientSecret, decodedReq.ClientSecret)
+			}
+			if decodedReq.Scope != data.scope {
+				t.Errorf("expected scope %s, got %s", data.scope, decodedReq.Scope)
+			}
+		})
 	}
 }
