@@ -14,8 +14,8 @@ import (
 	"github.com/sugawarayuuta/sonnet"
 )
 
-// EncodeRequestBody encodes the request body for client credentials grant type.
-func EncodeRequestBody(clientID, clientSecret, scope string) string {
+// EncodeRequestBodyOld encodes the request body for client credentials grant type.
+func EncodeRequestBodyOld(clientID, clientSecret, scope string) string {
 
 	form := url.Values{}
 	form.Add("grant_type", "client_credentials")
@@ -26,6 +26,23 @@ func EncodeRequestBody(clientID, clientSecret, scope string) string {
 	}
 
 	return form.Encode()
+}
+
+var (
+	clientIDEncoded     = url.QueryEscape("client_id")
+	clientSecretEncoded = "&" + url.QueryEscape("client_secret")
+	grantTypeEncoded    = "&" + url.QueryEscape("grant_type") + "=" + url.QueryEscape("client_credentials")
+	scopeEncoded        = "&" + url.QueryEscape("scope")
+)
+
+// EncodeRequestBody encodes the request body for client credentials grant type.
+func EncodeRequestBody(clientID, clientSecret, scope string) string {
+
+	if scope != "" {
+		return clientIDEncoded + "=" + url.QueryEscape(clientID) + clientSecretEncoded + "=" + url.QueryEscape(clientSecret) + grantTypeEncoded + scopeEncoded + "=" + url.QueryEscape(scope)
+	}
+
+	return clientIDEncoded + "=" + url.QueryEscape(clientID) + clientSecretEncoded + "=" + url.QueryEscape(clientSecret) + grantTypeEncoded
 }
 
 // DecodeRequestBody decodes the request body for client credentials grant type.
@@ -72,6 +89,11 @@ func DecodeResponseBody(data []byte) (Response, error) {
 	var resp Response
 	err := sonnet.Unmarshal(data, &resp)
 	return resp, err
+}
+
+// DecodeResponseBodyOld decodes the response body for client credentials grant type.
+func DecodeResponseBodyOld(data []byte) (Response, error) {
+	return parseToken(data, func(format string, v ...any) {})
 }
 
 // Response represents a client credentials token response.
