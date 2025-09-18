@@ -121,12 +121,15 @@ type RequestOptions struct {
 
 	// IsStatusCodeOK is optional function to check if the status code is OK.
 	// If nil, DefaultIsStatusCodeOK will be used.
-	IsStatusCodeOK func(statusCode int) bool
+	IsStatusCodeOK func(statusCode int) error
 }
 
 // DefaultIsStatusCodeOK is the default implementation for checking if a status code is OK.
-func DefaultIsStatusCodeOK(statusCode int) bool {
-	return statusCode >= 200 && statusCode < 300
+func DefaultIsStatusCodeOK(statusCode int) error {
+	if statusCode < 200 || statusCode > 299 {
+		return fmt.Errorf("oauth2clientcredentials.DefaultIsStatusCodeOK: status code out of range 200-299: %d", statusCode)
+	}
+	return nil // ok
 }
 
 // SendRequest sends a client credentials token request and returns the response.
@@ -158,8 +161,8 @@ func SendRequest(ctx context.Context, options RequestOptions) (Response, error) 
 
 	defer resp.Body.Close()
 
-	if !options.IsStatusCodeOK(resp.StatusCode) {
-		return tokenResp, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	if err := options.IsStatusCodeOK(resp.StatusCode); err != nil {
+		return tokenResp, fmt.Errorf("oauth2clientcredentials.SendRequest error: %w", err)
 	}
 
 	body, errRead := io.ReadAll(resp.Body)
