@@ -115,6 +115,8 @@ var sampleSecretKey = []byte("SecretYouShouldHide")
 
 func handlerToken(w http.ResponseWriter, r *http.Request, app *application) {
 
+	var scope string
+
 	if app.clientCredentials {
 		req, err := clientcredentials.DecodeRequestBody(r)
 		if err != nil {
@@ -125,16 +127,20 @@ func handlerToken(w http.ResponseWriter, r *http.Request, app *application) {
 			r.Method, req.GrantType, req.ClientID, req.ClientSecret, req.Scope)
 
 		if req.GrantType != "client_credentials" {
-			log.Printf("%s %s %s - wrong grant type - 401 unauthorized", r.RemoteAddr, r.Method, r.RequestURI)
+			log.Printf("%s %s %s - wrong grant type - 401 unauthorized",
+				r.RemoteAddr, r.Method, r.RequestURI)
 			response(w, r, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
 		if req.ClientID != "admin" || req.ClientSecret != "admin" {
-			log.Printf("%s %s %s - bad credentials - 401 unauthorized", r.RemoteAddr, r.Method, r.RequestURI)
+			log.Printf("%s %s %s - bad credentials - 401 unauthorized",
+				r.RemoteAddr, r.Method, r.RequestURI)
 			response(w, r, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+
+		scope = req.Scope
 	}
 
 	accessToken, errAccess := newToken(app.expireSeconds)
@@ -149,7 +155,8 @@ func handlerToken(w http.ResponseWriter, r *http.Request, app *application) {
 	var replyStr string
 
 	if app.clientCredentials {
-		replyStr = clientcredentials.EncodeResponseBody(accessToken, app.expireSeconds)
+		replyStr = clientcredentials.EncodeResponseBody(accessToken, scope,
+			app.expireSeconds)
 	} else {
 		reply = map[string]any{
 			"token":      accessToken,

@@ -50,7 +50,7 @@ func TestRequest(t *testing.T) {
 		}
 
 		// respond with access token
-		respBody := EncodeResponseBody(accessToken, expiresIn)
+		respBody := EncodeResponseBody(accessToken, scope, expiresIn)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(respBody))
@@ -69,15 +69,23 @@ func TestRequest(t *testing.T) {
 	}
 
 	if tokenResp.TokenType != "Bearer" {
-		t.Errorf("expected token_type Bearer, got %s", tokenResp.TokenType)
+		t.Errorf("expected token_type Bearer, got %s",
+			tokenResp.TokenType)
 	}
 
 	if tokenResp.AccessToken != accessToken {
-		t.Errorf("expected access_token %s, got %s", accessToken, tokenResp.AccessToken)
+		t.Errorf("expected access_token %s, got %s",
+			accessToken, tokenResp.AccessToken)
 	}
 
 	if tokenResp.ExpiresIn != expiresIn {
-		t.Errorf("expected expires_in %d, got %d", expiresIn, tokenResp.ExpiresIn)
+		t.Errorf("expected expires_in %d, got %d",
+			expiresIn, tokenResp.ExpiresIn)
+	}
+
+	if tokenResp.Scope != requestScope {
+		t.Errorf("expected scope %s, got %s",
+			requestScope, tokenResp.Scope)
 	}
 }
 

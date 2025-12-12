@@ -79,9 +79,9 @@ func getParam(r *http.Request, key string) string {
 }
 
 // EncodeResponseBody encodes the response body for client credentials grant type.
-func EncodeResponseBody(accessToken string, expiresInSeconds int) string {
+func EncodeResponseBody(accessToken, scope string, expiresInSeconds int) string {
 	expiresInSecondsStr := strconv.Itoa(expiresInSeconds)
-	return `{"access_token":"` + accessToken + `","token_type":"Bearer","expires_in":` + expiresInSecondsStr + `}`
+	return `{"access_token":"` + accessToken + `","token_type":"Bearer","expires_in":` + expiresInSecondsStr + `,"scope":"` + scope + `"}`
 }
 
 // DecodeResponseBody decodes the response body for client credentials grant type.
@@ -101,6 +101,7 @@ type Response struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
 	ExpiresIn   int    `json:"expires_in,omitempty"`
+	Scope       string `json:"scope,omitempty"`
 }
 
 // HTTPDoer is an interface for plugging in custom HTTP clients.
@@ -147,7 +148,8 @@ func SendRequest(ctx context.Context, options RequestOptions) (Response, error) 
 
 	reqBody := EncodeRequestBody(options.ClientID, options.ClientSecret, options.Scope)
 
-	req, errReq := http.NewRequestWithContext(ctx, "POST", options.TokenURL, strings.NewReader(reqBody))
+	req, errReq := http.NewRequestWithContext(ctx, "POST", options.TokenURL,
+		strings.NewReader(reqBody))
 	if errReq != nil {
 		return tokenResp, errReq
 	}

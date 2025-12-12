@@ -2,23 +2,23 @@
 package bench
 
 /*
-Date: 2025-09-10
+Date: 2025-12-12
 
 go version go1.25.1 linux/amd64
 
-$ go test -bench=. ./bench
+go test -bench=. ./bench
 goos: linux
 goarch: amd64
 pkg: github.com/udhos/oauth2clientcredentials/bench
 cpu: 13th Gen Intel(R) Core(TM) i7-1360P
-BenchmarkEncodeRequestBodyOld-16     	 1373432	       875.7 ns/op
-BenchmarkEncodeRequestBody-16        	 5795644	       184.7 ns/op
-BenchmarkDecodeRequestBody-16        	25285114	        44.02 ns/op
-BenchmarkEncodeResponseBody-16       	16006507	        78.54 ns/op
-BenchmarkDecodeResponseBody-16       	 4261275	       271.3 ns/op
-BenchmarkDecodeResponseBodyOld-16    	 1367126	       901.3 ns/op
+BenchmarkEncodeRequestBodyOld-16     	 1218193	       984.0 ns/op
+BenchmarkEncodeRequestBody-16        	 6438307	       175.7 ns/op
+BenchmarkDecodeRequestBody-16        	25867268	        42.59 ns/op
+BenchmarkEncodeResponseBody-16       	12504793	        96.34 ns/op
+BenchmarkDecodeResponseBody-16       	 3598549	       339.2 ns/op
+BenchmarkDecodeResponseBodyOld-16    	 1000000	      1082 ns/op
 PASS
-ok  	github.com/udhos/oauth2clientcredentials/bench	7.041s
+ok  	github.com/udhos/oauth2clientcredentials/bench	6.948s
 */
 
 import (
@@ -64,13 +64,13 @@ func BenchmarkDecodeRequestBody(b *testing.B) {
 // go test -bench=. ./bench
 func BenchmarkEncodeResponseBody(b *testing.B) {
 	for b.Loop() {
-		clientcredentials.EncodeResponseBody("myaccesstoken", 3600)
+		clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
 	}
 }
 
 // go test -bench=. ./bench
 func BenchmarkDecodeResponseBody(b *testing.B) {
-	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", 3600)
+	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
 	data := []byte(respBody)
 
 	for b.Loop() {
@@ -83,7 +83,7 @@ func BenchmarkDecodeResponseBody(b *testing.B) {
 
 // go test -bench=. ./bench
 func BenchmarkDecodeResponseBodyOld(b *testing.B) {
-	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", 3600)
+	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
 	data := []byte(respBody)
 
 	for b.Loop() {

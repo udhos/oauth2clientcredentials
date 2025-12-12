@@ -38,4 +38,5 @@ func main() {
 	log.Printf("access_token: %s", tokenResp.AccessToken)
 	log.Printf("token_type: %s", tokenResp.TokenType)
 	log.Printf("expires_in: %d", tokenResp.ExpiresIn)
+	log.Printf("scope: %s", tokenResp.Scope)
 }
