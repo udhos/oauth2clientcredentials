@@ -10,7 +10,7 @@ import (
 func parseToken(buf []byte, debugf func(format string, v ...any)) (Response, error) {
 	var info Response
 
-	var data map[string]interface{}
+	var data map[string]any
 
 	errJSON := sonnet.Unmarshal(buf, &data)
 	if errJSON != nil {
