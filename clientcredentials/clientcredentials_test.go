@@ -158,3 +158,45 @@ func TestEncodeRequestBody(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeResponseBody(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    Response
+		wantErr bool
+	}{
+		{
+			name:  "valid",
+			input: `{"access_token":"at","token_type":"Bearer","expires_in":3600,"scope":"s"}`,
+			want:  Response{AccessToken: "at", TokenType: "Bearer", ExpiresIn: 3600, Scope: "s"},
+		},
+		{
+			name:  "missing optional fields",
+			input: `{"access_token":"at","token_type":"Bearer"}`,
+			want:  Response{AccessToken: "at", TokenType: "Bearer", ExpiresIn: 0, Scope: ""},
+		},
+		{
+			name:    "invalid json",
+			input:   `{"access_token":"at"`, // malformed
+			wantErr: true,
+		},
+		{
+			name:  "unexpected type for expires_in", // fastjson may return 0
+			input: `{"access_token":"at","expires_in":"not-a-number"}`,
+			want:  Response{AccessToken: "at", ExpiresIn: 0},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := DecodeResponseBody([]byte(tt.input))
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("DecodeResponseBody() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Errorf("DecodeResponseBody() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}

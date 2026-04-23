@@ -30,21 +30,21 @@ import (
 	"github.com/udhos/oauth2clientcredentials/clientcredentials"
 )
 
-// go test -bench=. ./bench
+// go test -bench=. -benchmem ./bench
 func BenchmarkEncodeRequestBodyOld(b *testing.B) {
 	for b.Loop() {
 		clientcredentials.EncodeRequestBodyOld("myclientid", "myclientsecret", "read write")
 	}
 }
 
-// go test -bench=. ./bench
+// go test -bench=. -benchmem ./bench
 func BenchmarkEncodeRequestBody(b *testing.B) {
 	for b.Loop() {
 		clientcredentials.EncodeRequestBody("myclientid", "myclientsecret", "read write")
 	}
 }
 
-// go test -bench=. ./bench
+// go test -bench=. -benchmem ./bench
 func BenchmarkDecodeRequestBody(b *testing.B) {
 	reqBody := clientcredentials.EncodeRequestBody("myclientid", "myclientsecret", "read write")
 	req, err := http.NewRequest("POST", "http://example.com/token", io.NopCloser(strings.NewReader(reqBody)))
@@ -61,14 +61,14 @@ func BenchmarkDecodeRequestBody(b *testing.B) {
 	}
 }
 
-// go test -bench=. ./bench
+// go test -bench=. -benchmem ./bench
 func BenchmarkEncodeResponseBody(b *testing.B) {
 	for b.Loop() {
 		clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
 	}
 }
 
-// go test -bench=. ./bench
+// go test -bench=. -benchmem ./bench
 func BenchmarkDecodeResponseBody(b *testing.B) {
 	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
 	data := []byte(respBody)
@@ -81,13 +81,52 @@ func BenchmarkDecodeResponseBody(b *testing.B) {
 	}
 }
 
-// go test -bench=. ./bench
-func BenchmarkDecodeResponseBodyOld(b *testing.B) {
+// go test -bench=. -benchmem ./bench
+func BenchmarkDecodeResponseBodySonnet(b *testing.B) {
 	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
 	data := []byte(respBody)
 
 	for b.Loop() {
-		_, err := clientcredentials.DecodeResponseBodyOld(data)
+		_, err := clientcredentials.DecodeResponseBodySonnet(data)
+		if err != nil {
+			b.Fatalf("failed to decode response body: %v", err)
+		}
+	}
+}
+
+// go test -bench=. -benchmem ./bench
+func BenchmarkDecodeResponseBodyCustomParser(b *testing.B) {
+	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
+	data := []byte(respBody)
+
+	for b.Loop() {
+		_, err := clientcredentials.DecodeResponseBodyCustomParser(data)
+		if err != nil {
+			b.Fatalf("failed to decode response body: %v", err)
+		}
+	}
+}
+
+// go test -bench=. -benchmem ./bench
+func BenchmarkDecodeResponseBodyFastJSON(b *testing.B) {
+	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
+	data := []byte(respBody)
+
+	for b.Loop() {
+		_, err := clientcredentials.DecodeResponseBodyFastJSON(data)
+		if err != nil {
+			b.Fatalf("failed to decode response body: %v", err)
+		}
+	}
+}
+
+// go test -bench=. -benchmem ./bench
+func BenchmarkDecodeResponseBodyFastJSONSyncPool(b *testing.B) {
+	respBody := clientcredentials.EncodeResponseBody("myaccesstoken", "scope", 3600)
+	data := []byte(respBody)
+
+	for b.Loop() {
+		_, err := clientcredentials.DecodeResponseBodyFastJSONSyncPool(data)
 		if err != nil {
 			b.Fatalf("failed to decode response body: %v", err)
 		}

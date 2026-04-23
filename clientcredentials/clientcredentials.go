@@ -10,8 +10,10 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/sugawarayuuta/sonnet"
+	"github.com/valyala/fastjson"
 )
 
 // EncodeRequestBodyOld encodes the request body for client credentials grant type.
@@ -84,15 +86,83 @@ func EncodeResponseBody(accessToken, scope string, expiresInSeconds int) string 
 	return `{"access_token":"` + accessToken + `","token_type":"Bearer","expires_in":` + expiresInSecondsStr + `,"scope":"` + scope + `"}`
 }
 
-// DecodeResponseBody decodes the response body for client credentials grant type.
+// DecodeResponseBody decodes the response body for client credentials
+// grant type using the fastest decoder (currently fastjson with sync.Pool).
+//
+// 2026-04-22
+//
+// $ go test -bench=DecodeResponse -benchmem ./bench
+// goos: linux
+// goarch: amd64
+// pkg: github.com/udhos/oauth2clientcredentials/bench
+// cpu: 13th Gen Intel(R) Core(TM) i7-1360P
+// BenchmarkDecodeResponseBody-16                    	 4552692	       256.3 ns/op	      32 B/op	       3 allocs/op
+// BenchmarkDecodeResponseBodySonnet-16              	 3078936	       379.1 ns/op	     216 B/op	       6 allocs/op
+// BenchmarkDecodeResponseBodyCustomParser-16        	 1000000	      1084 ns/op	     696 B/op	      22 allocs/op
+// BenchmarkDecodeResponseBodyFastJSON-16            	 1000000	      1186 ns/op	    1560 B/op	      11 allocs/op
+// BenchmarkDecodeResponseBodyFastJSONSyncPool-16    	 4591796	       252.6 ns/op	      32 B/op	       3 allocs/op
+// PASS
+// ok  	github.com/udhos/oauth2clientcredentials/bench	5.772s
 func DecodeResponseBody(data []byte) (Response, error) {
+	return DecodeResponseBodyFastJSONSyncPool(data)
+}
+
+// DecodeResponseBodyFastJSON decodes the response body using valyala/fastjson.
+func DecodeResponseBodyFastJSON(data []byte) (Response, error) {
+	var resp Response
+
+	var p fastjson.Parser
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		return resp, err
+	}
+
+	// Extract fields
+	resp.AccessToken = string(v.GetStringBytes("access_token"))
+	resp.TokenType = string(v.GetStringBytes("token_type"))
+
+	// GetInt returns 0 if the key is missing or not an integer
+	resp.ExpiresIn = v.GetInt("expires_in")
+	resp.Scope = string(v.GetStringBytes("scope"))
+
+	return resp, nil
+}
+
+var parserPool = sync.Pool{
+	New: func() any { return new(fastjson.Parser) },
+}
+
+// DecodeResponseBodyFastJSONSyncPool decodes the response body using valyala/fastjson with sync.Pool for parser reuse.
+func DecodeResponseBodyFastJSONSyncPool(data []byte) (Response, error) {
+	var resp Response
+
+	// Get a parser from the pool
+	p := parserPool.Get().(*fastjson.Parser)
+	defer parserPool.Put(p)
+
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		return resp, err
+	}
+
+	// Direct assignment avoids reflection
+	resp.AccessToken = string(v.GetStringBytes("access_token"))
+	resp.TokenType = string(v.GetStringBytes("token_type"))
+	resp.ExpiresIn = v.GetInt("expires_in")
+	resp.Scope = string(v.GetStringBytes("scope"))
+
+	return resp, nil
+}
+
+// DecodeResponseBodySonnet decodes the response body for client credentials grant type using sonnet.
+func DecodeResponseBodySonnet(data []byte) (Response, error) {
 	var resp Response
 	err := sonnet.Unmarshal(data, &resp)
 	return resp, err
 }
 
-// DecodeResponseBodyOld decodes the response body for client credentials grant type.
-func DecodeResponseBodyOld(data []byte) (Response, error) {
+// DecodeResponseBodyCustomParser decodes the response body for client credentials grant type using a custom parser.
+func DecodeResponseBodyCustomParser(data []byte) (Response, error) {
 	return parseToken(data, func(_ string, _ ...any) {})
 }
 
